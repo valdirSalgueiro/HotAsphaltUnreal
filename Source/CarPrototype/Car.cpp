@@ -203,7 +203,18 @@ void ACar::Tick(float DeltaTime)
 		DriveTorque[i] = TorqueRatio[i % 2] * engineTorque * totalGearRatio * 0.5f;
 
 		///angularAcceleration = torque/inertia
-		wheelAngularVelocity[i] = DriveTorque[i] / wheelInertia[i];
+		float angularAcceleration = DriveTorque[i] / wheelInertia[i];
+
+		///max wheelspeed on current gear
+		float maxWheelSpeed = 99999.f;
+		if (gear != 1) {
+			maxWheelSpeed = engineAngularVelocity / totalGearRatio;
+		}
+
+		///angularvelocity += angularacceleration*dt
+		wheelAngularVelocity[i] = wheelAngularVelocity[i] + angularAcceleration * DeltaTime;
+		wheelAngularVelocity[i] = FMath::Min(FMath::Abs(wheelAngularVelocity[i]), FMath::Abs(maxWheelSpeed)) * FMath::Sign(maxWheelSpeed);
+
 
 		///springforce = stiffness * (restlength - length)
 		auto springForce = suspension.stiffness * (suspension.restLength - Length[i]);
@@ -235,8 +246,9 @@ void ACar::Tick(float DeltaTime)
 		Body->AddForceAtLocation(tireForce * 100, Hit.Location);
 		if (wheelComponent) {
 			wheelComponent->SetRelativeLocation(FVector(0, 0, -Length[i]));
-			wheelComponent->AddLocalRotation(FRotator(FMath::RadiansToDegrees(wheel.radius * wheelLinearVelocityLocal.X / 100.f * DeltaTime), 0, 0));
-		}		
+			//wheelComponent->AddLocalRotation(FRotator(FMath::RadiansToDegrees(wheel.radius * wheelLinearVelocityLocal.X / 100.f * DeltaTime), 0, 0));
+			wheelComponent->AddLocalRotation(FRotator(FMath::RadiansToDegrees(wheelAngularVelocity[i] * DeltaTime), 0, 0));
+		}
 
 		if (debugForces)
 		{
@@ -281,7 +293,7 @@ void ACar::HandleThrottle(float AxisValue)
 
 void ACar::Debug()
 {
-	if (Body) 
+	if (Body)
 	{
 		Body->SetVisibility(!Body->IsVisible());
 		debugForces = !Body->IsVisible();
