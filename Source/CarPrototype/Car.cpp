@@ -15,8 +15,6 @@
 
 //#include "Kismet/GameplayStatics.h"
 
-const FName TraceTag("MyTraceTag");
-
 // Sets default values
 ACar::ACar()
 {
@@ -121,7 +119,6 @@ ACar::ACar()
 void ACar::BeginPlay()
 {
 	Super::BeginPlay();
-	GetWorld()->DebugDrawTraceTag = TraceTag;
 	Body->SetCenterOfMass(FVector(35, 0, -30));
 }
 
@@ -136,7 +133,6 @@ void ACar::Tick(float DeltaTime)
 	FHitResult Hit;
 	FCollisionQueryParams TraceParams(true);
 	TraceParams.AddIgnoredActor(this);
-	//TraceParams.TraceTag = TraceTag;
 
 	//MovementInput = MovementInput.GetSafeNormal();
 	if (MovementInput.Y != 0)
@@ -161,7 +157,7 @@ void ACar::Tick(float DeltaTime)
 	ThrottleValue = FMath::Max(0.f, ThrottleValue);
 
 	engineRPM += DeltaTime * FMath::Lerp(-3000, 5000, ThrottleValue);
-	engineRPM = FMath::Clamp(engineRPM, idleRPM, maxRPM);
+	engineRPM = FMath::Clamp(engineRPM, (float)idleRPM, (float)maxRPM);
 
 	float engineTorque = EngineCurve->GetFloatValue(engineRPM) * ThrottleValue;
 	float torque = FMath::Lerp(backTorque, engineTorque, ThrottleValue);
@@ -246,6 +242,8 @@ void ACar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("Right", this, &ACar::MoveRight);
 	PlayerInputComponent->BindAxis("Forward", this, &ACar::MoveForward);
 	PlayerInputComponent->BindAxis("Throttle", this, &ACar::HandleThrottle);
+	PlayerInputComponent->BindAction("GearUp", IE_Released, this, &ACar::GearUp);
+	PlayerInputComponent->BindAction("GearDown", IE_Released, this, &ACar::GearDown);
 	PlayerInputComponent->BindAction("Debug", IE_Released, this, &ACar::Debug);
 }
 
@@ -273,3 +271,16 @@ void ACar::Debug()
 	}
 }
 
+void ACar::GearUp()
+{
+	gear++;
+	//todo put waiting between switching gear if we continue  this route 
+	//while the gear is onchange, gear must be '1'
+	gear = FMath::Min(GearRatio.Num() - 1, gear);
+}
+
+void ACar::GearDown()
+{
+	gear--;
+	gear = FMath::Max(0, gear);
+}

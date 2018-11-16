@@ -56,27 +56,36 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
+	/*Car body*/
 	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent* Body;
-
+	
+	/*Camera*/
 	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		class UCameraComponent* Camera;
 
 	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		class USpringArmComponent* CameraSpringArm;
 
-	UPROPERTY(BlueprintReadOnly, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
-		TArray<USceneComponent*> ToplinkComponents;
 
+	/*Suspension structs*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		TArray<FWheelStruct> WheelArray;
 
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		TArray<FSuspensionStruct> SuspensionArray;
-
+	
+	/*Gear*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		TArray<float> GearRatio;
+
+	/*Torque*/
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+		TArray<float> DriveTorque;
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+		TArray<float> TorqueRatio;
 		
+	/*Car Scene Components*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		USceneComponent* TopLink_FL;
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
@@ -85,7 +94,10 @@ private:
 		USceneComponent* TopLink_RL;
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		USceneComponent* TopLink_RR;
+	UPROPERTY(BlueprintReadOnly, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+		TArray<USceneComponent*> ToplinkComponents;
 
+	/*Car Mesh Components*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		UStaticMeshComponent* Wheel_FL;
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
@@ -95,38 +107,51 @@ private:
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		UStaticMeshComponent* Wheel_RR;
 
+	/*Toque Curve*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		UCurveFloat* EngineCurve;
 
+	/*Input*/
 	void MoveRight(float AxisValue);
 	void MoveForward(float AxisValue);
 	void HandleThrottle(float AxisValue);
+
+	/*Gear*/
+	void GearUp();
+	void GearDown();
+	
 	void Debug();
 
 	std::vector<UStaticMeshComponent*> Wheels;
+
+	/*Input*/
+	FVector2D MovementInput;
+
+	/*Suspension*/
 	std::vector<float> Length;
 	std::vector<float> LastLength;
 	std::vector<float> Raylength;
-	FVector2D MovementInput;
 
+	/*Steer*/
 	float steeringAngle;
 
+	/*Torque*/
 	float Throttle;
 	float ThrottleValue;
 
-	float idleRPM;
-	float maxRPM;
+	int idleRPM;
+	int maxRPM;
 	float inertia;
 	float backTorque;
 
 	float engineRPM;
-
 	float engineAngularVelocity;
 
-	float gear;
+	/*Gear*/
+	int gear;
 	float mainGear;
+	float totalGearRatio; //mainGear*gear
 	float efficiency;
-
 	float gearChangeTime;
 
 	const float RPM_TO_RADPS = PI * 2.f / 60.f;
