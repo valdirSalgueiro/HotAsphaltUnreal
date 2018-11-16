@@ -37,7 +37,7 @@ ACar::ACar()
 	Wheel_FL = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_FL"));
 	Wheel_FL->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_FL->AttachTo(TopLink_FL);
-	Wheels.push_back(Wheel_FL);
+	WheelComponents.push_back(Wheel_FL);
 	ToplinkComponents.Add(TopLink_FL);
 
 	TopLink_FR = CreateDefaultSubobject<USceneComponent>(TEXT("TopLink_FR"));
@@ -46,7 +46,7 @@ ACar::ACar()
 	Wheel_FR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_FR"));
 	Wheel_FR->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_FR->AttachTo(TopLink_FR);
-	Wheels.push_back(Wheel_FR);
+	WheelComponents.push_back(Wheel_FR);
 	ToplinkComponents.Add(TopLink_FR);
 
 	TopLink_RL = CreateDefaultSubobject<USceneComponent>(TEXT("TopLink_RL"));
@@ -55,7 +55,7 @@ ACar::ACar()
 	Wheel_RL = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_RL"));
 	Wheel_RL->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_RL->AttachTo(TopLink_RL);
-	Wheels.push_back(Wheel_RL);
+	WheelComponents.push_back(Wheel_RL);
 	ToplinkComponents.Add(TopLink_RL);
 
 	TopLink_RR = CreateDefaultSubobject<USceneComponent>(TEXT("TopLink_RR"));
@@ -64,7 +64,7 @@ ACar::ACar()
 	Wheel_RR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_RR"));
 	Wheel_RR->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_RR->AttachTo(TopLink_RR);
-	Wheels.push_back(Wheel_RR);
+	WheelComponents.push_back(Wheel_RR);
 	ToplinkComponents.Add(TopLink_RR);
 
 	steeringAngle = 0;
@@ -82,12 +82,16 @@ ACar::ACar()
 		FWheelStruct wheel;
 		wheel.radius = 34;
 		wheel.mass = 15;
-		WheelArray.Add(wheel);
+		Wheels.Add(wheel);
 
 		auto length = suspension.restLength + suspension.travel;
 		Length.push_back(length);
 		LastLength.push_back(length);
 		Raylength.push_back(wheel.radius + suspension.restLength + suspension.travel);
+
+		wheelInertia.push_back(FMath::Pow(wheel.radius / 100.0f, 2.f) * wheel.mass * 0.5f);
+		wheelAngularVelocity.push_back(0.f);
+		DriveTorque.Add(0.f);
 	}
 
 	GearRatio.Add(-3.615);
@@ -113,6 +117,10 @@ ACar::ACar()
 	mainGear = 3.82;
 	efficiency = 0.8;
 	gearChangeTime = 0.5;
+
+	//RWD transmission
+	TorqueRatio.Add(0);
+	TorqueRatio.Add(1.f);
 }
 
 // Called when the game starts or when spawned
@@ -174,25 +182,33 @@ void ACar::Tick(float DeltaTime)
 		auto upVector = ToplinkComponent->GetUpVector();
 		auto ToplinkComponentTransform = ToplinkComponent->GetComponentTransform();
 		auto suspension = SuspensionArray[i];
-		auto wheel = WheelArray[i];
-		auto wheelComponent = Wheels[i];
+		auto wheel = Wheels[i];
+		auto wheelComponent = WheelComponents[i];
 		FVector toplinkLocation = ToplinkComponent->GetComponentLocation();
 		FVector start = toplinkLocation;
 		FVector end = start - upVector * Raylength[i];
 
 		bool wheelContact = GetWorld()->LineTraceSingleByObjectType(Hit, start, end, ECC_WorldDynamic | ECC_WorldStatic, TraceParams);
 		if (wheelContact) {
-			Length[i] = FMath::Clamp((toplinkLocation - (Hit.Location + upVector * WheelArray[i].radius)).Size(), suspension.restLength - suspension.travel, suspension.restLength + suspension.travel);
+			Length[i] = FMath::Clamp((toplinkLocation - (Hit.Location + upVector * Wheels[i].radius)).Size(), suspension.restLength - suspension.travel, suspension.restLength + suspension.travel);
 		}
 		else
 		{
 			Length[i] = suspension.restLength + suspension.travel;
 		}
 
-		//springforce = stiffness * (restlength - length)
+		/* transmission */
+		engineTorque = FMath::Max(0.f, engineTorque);
+		totalGearRatio = mainGear * gear;
+		DriveTorque[i] = TorqueRatio[i % 2] * engineTorque * totalGearRatio * 0.5f;
+
+		///angularAcceleration = torque/inertia
+		wheelAngularVelocity[i] = DriveTorque[i] / wheelInertia[i];
+
+		///springforce = stiffness * (restlength - length)
 		auto springForce = suspension.stiffness * (suspension.restLength - Length[i]);
 
-		//damperforce = damper * (lastl - length)/dt;
+		///damperforce = damper * (lastl - length)/dt;
 		auto damperForce = suspension.damper * ((LastLength[i] - Length[i]) / DeltaTime);
 
 		auto fz = FMath::Clamp(damperForce + springForce, suspension.forceMin, suspension.forceMax);
@@ -217,11 +233,10 @@ void ACar::Tick(float DeltaTime)
 		auto tireForce = fx * forwadVector + fy * rightVector;
 		Body->AddForceAtLocation(fz * 100 * upVector, toplinkLocation);
 		Body->AddForceAtLocation(tireForce * 100, Hit.Location);
-		if (Wheels[i]) {
-			Wheels[i]->SetRelativeLocation(FVector(0, 0, -Length[i]));
-			Wheels[i]->AddLocalRotation(FRotator(FMath::RadiansToDegrees(wheel.radius * wheelLinearVelocityLocal.X / 100.f * DeltaTime), 0, 0));
-		}
-		LastLength[i] = Length[i];
+		if (wheelComponent) {
+			wheelComponent->SetRelativeLocation(FVector(0, 0, -Length[i]));
+			wheelComponent->AddLocalRotation(FRotator(FMath::RadiansToDegrees(wheel.radius * wheelLinearVelocityLocal.X / 100.f * DeltaTime), 0, 0));
+		}		
 
 		if (debugForces)
 		{
@@ -230,6 +245,7 @@ void ACar::Tick(float DeltaTime)
 			::DrawDebugLine(World, toplinkLocation, toplinkLocation + fz / 35.f * upVector, FColor::Purple, false, 0.0f, 0, 9.f);
 			//	::DrawDebugPoint(World, HitResult.ImpactPoint, 16.0f, FColor::Red, false, 0.0f);
 		}
+		LastLength[i] = Length[i];
 	}
 	TopLink_FL->SetRelativeRotation(FRotator(0, steeringAngle, 0));
 	TopLink_FR->SetRelativeRotation(FRotator(0, steeringAngle, 0));
@@ -265,7 +281,8 @@ void ACar::HandleThrottle(float AxisValue)
 
 void ACar::Debug()
 {
-	if (Body) {
+	if (Body) 
+	{
 		Body->SetVisibility(!Body->IsVisible());
 		debugForces = !Body->IsVisible();
 	}
@@ -274,8 +291,9 @@ void ACar::Debug()
 void ACar::GearUp()
 {
 	gear++;
-	//todo put waiting between switching gear if we continue  this route 
-	//while the gear is onchange, gear must be '1'
+	///todo put waiting between switching gear if we continue  this route 
+	///while the gear is onchange, gear must be '1'
+	///gearTarget = gear++ -> gear = 1(N) -> delay(gearChangeTime) -> gear = gearTarget
 	gear = FMath::Min(GearRatio.Num() - 1, gear);
 }
 

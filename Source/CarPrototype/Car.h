@@ -11,7 +11,7 @@ USTRUCT()
 struct FSuspensionStruct
 {
 	GENERATED_BODY()
-		UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		float restLength;
 	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		float travel;
@@ -29,7 +29,7 @@ USTRUCT()
 struct FWheelStruct
 {
 	GENERATED_BODY()
-		UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		float radius;
 	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		float mass;
@@ -67,19 +67,16 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		class USpringArmComponent* CameraSpringArm;
 
-
 	/*Suspension structs*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
-		TArray<FWheelStruct> WheelArray;
+		TArray<FWheelStruct> Wheels;
 
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		TArray<FSuspensionStruct> SuspensionArray;
 	
-	/*Gear*/
+	/*Transmission*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		TArray<float> GearRatio;
-
-	/*Torque*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		TArray<float> DriveTorque;
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
@@ -111,18 +108,18 @@ private:
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
 		UCurveFloat* EngineCurve;
 
-	/*Input*/
+	/*Input methods*/
 	void MoveRight(float AxisValue);
 	void MoveForward(float AxisValue);
 	void HandleThrottle(float AxisValue);
 
-	/*Gear*/
+	/*Transmission methods*/
 	void GearUp();
 	void GearDown();
 	
 	void Debug();
 
-	std::vector<UStaticMeshComponent*> Wheels;
+	std::vector<UStaticMeshComponent*> WheelComponents;
 
 	/*Input*/
 	FVector2D MovementInput;
@@ -147,8 +144,11 @@ private:
 	float engineRPM;
 	float engineAngularVelocity;
 
-	/*Gear*/
+	/*Transmission*/
+	std::vector<float> wheelInertia;
+	std::vector<float> wheelAngularVelocity;
 	int gear;
+	int gearTarget;
 	float mainGear;
 	float totalGearRatio; //mainGear*gear
 	float efficiency;
