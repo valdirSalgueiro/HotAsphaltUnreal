@@ -22,7 +22,7 @@ ACar::ACar()
 	PrimaryActorTick.bCanEverTick = true;
 
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VehicleMesh"));
-	RootComponent = Body;
+	RootComponent = RootComponent;
 
 	CameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
 	CameraSpringArm->TargetArmLength = 400;
@@ -167,7 +167,9 @@ void ACar::Tick(float DeltaTime)
 	engineRPM += DeltaTime * FMath::Lerp(-3000, 5000, ThrottleValue);
 	engineRPM = FMath::Clamp(engineRPM, (float)idleRPM, (float)maxRPM);
 
-	float engineTorque = EngineCurve->GetFloatValue(engineRPM) * ThrottleValue;
+	float engineTorque = 0;
+	if (EngineCurve)
+		engineTorque = EngineCurve->GetFloatValue(engineRPM) * ThrottleValue;
 	float torque = FMath::Lerp(backTorque, engineTorque, ThrottleValue);
 
 	//angularAcceleration = torque/inertia
@@ -200,7 +202,14 @@ void ACar::Tick(float DeltaTime)
 		/* transmission */
 		engineTorque = FMath::Max(0.f, engineTorque);
 		totalGearRatio = mainGear * gear;
-		DriveTorque[i] = TorqueRatio[i % 2] * engineTorque * totalGearRatio * 0.5f;
+		auto currentTorqueRation = 0;
+		if (i < 2) {
+			currentTorqueRation = TorqueRatio[0];
+		}
+		else {
+			currentTorqueRation = TorqueRatio[1];
+		}
+		DriveTorque[i] = currentTorqueRation * engineTorque * totalGearRatio * 0.5f;
 
 		///angularAcceleration = torque/inertia
 		float angularAcceleration = DriveTorque[i] / wheelInertia[i];

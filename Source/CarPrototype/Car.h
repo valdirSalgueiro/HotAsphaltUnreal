@@ -55,57 +55,57 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-private:
+protected:
 	/*Car body*/
-	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly)
 		class UStaticMeshComponent* Body;
 	
 	/*Camera*/
-	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = "Player")
 		class UCameraComponent* Camera;
 
-	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = "Player")
 		class USpringArmComponent* CameraSpringArm;
 
 	/*Suspension structs*/
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		TArray<FWheelStruct> Wheels;
 
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		TArray<FSuspensionStruct> SuspensionArray;
 	
 	/*Transmission*/
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		TArray<float> GearRatio;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		TArray<float> DriveTorque;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		TArray<float> TorqueRatio;
 		
 	/*Car Scene Components*/
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		USceneComponent* TopLink_FL;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		USceneComponent* TopLink_FR;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		USceneComponent* TopLink_RL;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		USceneComponent* TopLink_RR;
-	UPROPERTY(BlueprintReadOnly, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Category = VehicleSetup)
 		TArray<USceneComponent*> ToplinkComponents;
 
 	/*Car Mesh Components*/
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		UStaticMeshComponent* Wheel_FL;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		UStaticMeshComponent* Wheel_FR;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		UStaticMeshComponent* Wheel_RL;
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		UStaticMeshComponent* Wheel_RR;
 
 	/*Toque Curve*/
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		UCurveFloat* EngineCurve;
 
 	/*Input methods*/
