@@ -112,10 +112,12 @@ void ATrackGenerator::CreateSplinePoint()
 
 void ATrackGenerator::AddSplinePoint()
 {
+	angleH = 0;
+	angleV = 0;
+
 	float newX = FMath::Cos(FMath::DegreesToRadians(angleH)) * 600.f;
 	float newY = FMath::Sin(FMath::DegreesToRadians(angleH)) * 600.f;
 	float newZ = FMath::Sin(FMath::DegreesToRadians(angleV)) * 600.f;
-	newZ = 0;
 	lastPoint += FVector(newX, newY, newZ);
 	Spline->AddSplinePoint(lastPoint, ESplineCoordinateSpace::World);
 }

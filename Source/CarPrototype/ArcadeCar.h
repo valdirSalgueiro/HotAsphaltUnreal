@@ -23,9 +23,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = ArcadeCar, meta = (AllowPrivateAccess = "true"))
 		float Thrust;
 
-	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, Category = ArcadeCar, meta = (AllowPrivateAccess = "true"))
 		float TurnStrength;
 };

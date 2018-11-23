@@ -37,6 +37,7 @@ ACar::ACar()
 	Wheel_FL = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_FL"));
 	Wheel_FL->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_FL->AttachTo(TopLink_FL);
+	Wheel_FL->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WheelComponents.push_back(Wheel_FL);
 	ToplinkComponents.Add(TopLink_FL);
 
@@ -46,6 +47,7 @@ ACar::ACar()
 	Wheel_FR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_FR"));
 	Wheel_FR->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_FR->AttachTo(TopLink_FR);
+	Wheel_FR->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WheelComponents.push_back(Wheel_FR);
 	ToplinkComponents.Add(TopLink_FR);
 
@@ -55,6 +57,7 @@ ACar::ACar()
 	Wheel_RL = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_RL"));
 	Wheel_RL->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_RL->AttachTo(TopLink_RL);
+	Wheel_RL->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WheelComponents.push_back(Wheel_RL);
 	ToplinkComponents.Add(TopLink_RL);
 
@@ -64,6 +67,7 @@ ACar::ACar()
 	Wheel_RR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Wheel_RR"));
 	Wheel_RR->SetRelativeLocation(FVector(0, 0, -50));
 	Wheel_RR->AttachTo(TopLink_RR);
+	Wheel_RR->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WheelComponents.push_back(Wheel_RR);
 	ToplinkComponents.Add(TopLink_RR);
 
@@ -127,6 +131,7 @@ ACar::ACar()
 void ACar::BeginPlay()
 {
 	Super::BeginPlay();
+	Body->SetSimulatePhysics(true);
 	Body->SetCenterOfMass(FVector(35, 0, -30));
 }
 
@@ -230,6 +235,8 @@ void ACar::Tick(float DeltaTime)
 
 		///damperforce = damper * (lastl - length)/dt;
 		auto damperForce = suspension.damper * ((LastLength[i] - Length[i]) / DeltaTime);
+		//UE_LOG(LogTemp, Warning, TEXT("%f %f"), damperForce, springForce);
+
 
 		auto fz = FMath::Clamp(damperForce + springForce, suspension.forceMin, suspension.forceMax);
 		float fx = 0;
@@ -242,10 +249,10 @@ void ACar::Tick(float DeltaTime)
 			fy = FMath::Clamp(fz * -wheelLinearVelocityLocal.Y, -fz, fz);
 			fx = MovementInput.X * fz * 0.5f;
 
-			if (GEngine) {
-				GEngine->AddOnScreenDebugMessage(i, 15.0f, FColor::Yellow, FString::Printf(TEXT("%d %s"), i, *wheelLinearVelocityLocal.ToCompactString()));
-				GEngine->AddOnScreenDebugMessage(i + 4, 15.0f, FColor::Yellow, FString::Printf(TEXT("fz: %d %s"), i, *(fz * 100 * upVector).ToCompactString()));
-			}
+			//if (GEngine) {
+			//	GEngine->AddOnScreenDebugMessage(i, 15.0f, FColor::Yellow, FString::Printf(TEXT("%d %s"), i, *wheelLinearVelocityLocal.ToCompactString()));
+			//	GEngine->AddOnScreenDebugMessage(i + 4, 15.0f, FColor::Yellow, FString::Printf(TEXT("fz: %d %s"), i, *(fz * 100 * upVector).ToCompactString()));
+			//}
 		}
 
 		auto forwadVector = ToplinkComponent->GetForwardVector();
@@ -261,9 +268,9 @@ void ACar::Tick(float DeltaTime)
 
 		if (debugForces)
 		{
-			::DrawDebugLine(World, toplinkLocation, toplinkLocation + fx / 35.f * forwadVector, FColor::Green, false, 0.0f, 0, 9.f);
-			::DrawDebugLine(World, toplinkLocation, toplinkLocation + fy / 35.f * rightVector, FColor::Blue, false, 0.0f, 0, 9.f);
-			::DrawDebugLine(World, toplinkLocation, toplinkLocation + fz / 35.f * upVector, FColor::Purple, false, 0.0f, 0, 9.f);
+			//::DrawDebugLine(World, toplinkLocation, toplinkLocation + fx / 35.f * forwadVector, FColor::Green, false, 0.0f, 0, 9.f);
+			//::DrawDebugLine(World, toplinkLocation, toplinkLocation + fy / 35.f * rightVector, FColor::Blue, false, 0.0f, 0, 9.f);
+			//::DrawDebugLine(World, toplinkLocation, toplinkLocation + fz / 35.f * upVector, FColor::Purple, false, 0.0f, 0, 9.f);
 			//	::DrawDebugPoint(World, HitResult.ImpactPoint, 16.0f, FColor::Red, false, 0.0f);
 		}
 		LastLength[i] = Length[i];
