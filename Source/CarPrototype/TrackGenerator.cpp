@@ -4,6 +4,11 @@
 #include "Runtime/Engine/Classes/Components/SplineComponent.h"
 #include "Runtime/Engine/Classes/Components/SplineMeshComponent.h"
 #include "Runtime/Engine/Classes/Components/StaticMeshComponent.h"
+#include "Runtime/Engine/Classes/Engine/StaticMesh.h"
+#include "Runtime/Engine/Public/EngineUtils.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Runtime/Engine/Classes/Materials/MaterialInstanceDynamic.h"
+#include "Building.h"
 
 // Sets default values
 ATrackGenerator::ATrackGenerator()
@@ -13,6 +18,9 @@ ATrackGenerator::ATrackGenerator()
 	Spline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
 	Spline->SetMobility(EComponentMobility::Type::Static);
 	RootComponent = Spline;
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>MeshAsset(TEXT("StaticMesh'/Game/TechArtAid/RandomizingInstances/Models/Block/RandomizingInstances_Model_Block_Wall.RandomizingInstances_Model_Block_Wall'"));
+	buildingMesh = MeshAsset.Object;
 }
 
 // Called every frame
@@ -52,26 +60,119 @@ void ATrackGenerator::Initialize()
 		AddSplinePoint();
 	}
 
-	for (int i = 0; i < 300; i++)
+	for (int i = 0; i < 100; i++)
 	{
 		CreateSplinePoint();
 	}
+	auto world = GetWorld();
 
-	for (int i = 0; i < 310; i++)
+	for (TActorIterator<ABuilding> ActorItr(world); ActorItr; ++ActorItr)
 	{
+		world->DestroyActor(*ActorItr);
+	}
+
+	int height = buildingMesh->GetBounds().BoxExtent.Z * 2;
+
+	for (int i = 0; i < Spline->GetNumberOfSplinePoints() - 1; i++)
+	{
+		Spline->GetLocationAndTangentAtSplinePoint(i, locStart, tanStart, ESplineCoordinateSpace::Local);
+		Spline->GetLocationAndTangentAtSplinePoint(i + 1, locEnd, tanEnd, ESplineCoordinateSpace::Local);
+
 		USplineMeshComponent *splineMesh = NewObject<USplineMeshComponent>(this);
 		splineMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		splineMesh->RegisterComponent();
 		splineMesh->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 		splineMesh->SetMobility(EComponentMobility::Type::Static);
 		splineMesh->SetForwardAxis(ESplineMeshAxis::X);
-		splineMesh->SetStaticMesh(Mesh);
+		splineMesh->SetStaticMesh(RoadMesh);
 		splineMesh->AttachTo(Spline);
-		//splineMesh->AttachToComponent(Spline, FAttachmentTransformRules::FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-
-		Spline->GetLocationAndTangentAtSplinePoint(i, locStart, tanStart, ESplineCoordinateSpace::Local);
-		Spline->GetLocationAndTangentAtSplinePoint(i + 1, locEnd, tanEnd, ESplineCoordinateSpace::Local);
 		splineMesh->SetStartAndEnd(locStart, tanStart, locEnd, tanEnd);
+
+		USplineMeshComponent *LsplineMesh = NewObject<USplineMeshComponent>(this);
+		LsplineMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		LsplineMesh->RegisterComponent();
+		LsplineMesh->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+		LsplineMesh->SetMobility(EComponentMobility::Type::Static);
+		LsplineMesh->SetForwardAxis(ESplineMeshAxis::X);
+		LsplineMesh->SetStaticMesh(LeftRoadMesh);
+		LsplineMesh->AttachTo(Spline);
+		LsplineMesh->SetStartAndEnd(locStart, tanStart, locEnd, tanEnd);
+
+		USplineMeshComponent *RsplineMesh = NewObject<USplineMeshComponent>(this);
+		RsplineMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		RsplineMesh->RegisterComponent();
+		RsplineMesh->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+		RsplineMesh->SetMobility(EComponentMobility::Type::Static);
+		RsplineMesh->SetForwardAxis(ESplineMeshAxis::X);
+		RsplineMesh->SetStaticMesh(RightRoadMesh);
+		RsplineMesh->AttachTo(Spline);
+		RsplineMesh->SetStartAndEnd(locStart, tanStart, locEnd, tanEnd);
+
+		USplineMeshComponent *building;
+
+		FLinearColor randomColor = FLinearColor::MakeRandomColor();
+		FLinearColor randomColor2 = FLinearColor::MakeRandomColor();
+		for (int i = 0; i < 6; i++)
+		{
+			building = NewObject<USplineMeshComponent>(this);
+			building->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			building->RegisterComponent();
+			building->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+			building->SetMobility(EComponentMobility::Type::Static);
+			building->SetForwardAxis(ESplineMeshAxis::X);
+			building->SetStaticMesh(buildingMesh);
+			building->SetStartOffset(FVector2D(-1384 / 1.6f, i*height));
+			building->SetEndOffset(FVector2D(-1384 / 1.6f, i*height));
+			building->AttachTo(Spline);
+			building->SetWorldScale3D(FVector(1, -1, 1));
+			building->SetStartAndEnd(FVector(locStart.X, -locStart.Y, locStart.Z), FVector(tanStart.X, -tanStart.Y, tanStart.Z), FVector(locEnd.X, -locEnd.Y, locEnd.Z), FVector(tanEnd.X, -tanEnd.Y, tanEnd.Z));
+
+			UMaterialInterface* CurrentMat = building->GetMaterial(0);
+			UMaterialInstanceDynamic* RandMat = UMaterialInstanceDynamic::Create(CurrentMat, building);
+
+			RandMat->SetVectorParameterValue(FName(TEXT("WallPaintColor2")), randomColor);
+			RandMat->SetVectorParameterValue(FName(TEXT("WallPaintColor1")), randomColor2);
+			RandMat->SetScalarParameterValue(FName(TEXT("DirtHeightMax")), 100000);
+			RandMat->SetScalarParameterValue(FName(TEXT("DirtHeightMin")), 0);
+			RandMat->SetScalarParameterValue(FName(TEXT("DirtTurbulence")), 0);
+			building->SetMaterial(0, RandMat);
+		}
+
+
+		randomColor = FLinearColor::MakeRandomColor();
+		randomColor2 = FLinearColor::MakeRandomColor();
+		for (int i = 0; i < 6; i++)
+		{
+			building = NewObject<USplineMeshComponent>(this);
+			building->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			building->RegisterComponent();
+			building->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+			building->SetMobility(EComponentMobility::Type::Static);
+			building->SetForwardAxis(ESplineMeshAxis::X);
+			building->SetStaticMesh(buildingMesh);
+			building->SetStartOffset(FVector2D(-1384 / 1.6f, i*height));
+			building->SetEndOffset(FVector2D(-1384 / 1.6f, i*height));
+			building->AttachTo(Spline);
+			building->SetStartAndEnd(locStart, tanStart, locEnd, tanEnd);
+
+			UMaterialInterface* CurrentMat = building->GetMaterial(0);
+			UMaterialInstanceDynamic* RandMat = UMaterialInstanceDynamic::Create(CurrentMat, building);
+
+			RandMat->SetVectorParameterValue(FName(TEXT("WallPaintColor2")), randomColor);
+			RandMat->SetVectorParameterValue(FName(TEXT("WallPaintColor1")), randomColor2);
+			RandMat->SetScalarParameterValue(FName(TEXT("DirtHeightMax")), 100000);
+			RandMat->SetScalarParameterValue(FName(TEXT("DirtHeightMin")), 0);
+			RandMat->SetScalarParameterValue(FName(TEXT("DirtTurbulence")), 0);
+			building->SetMaterial(0, RandMat);
+		}
+
+		//FTransform transform = Spline->GetTransformAtSplinePoint(i, ESplineCoordinateSpace::Local);
+		//auto vecRight = FRotationMatrix(transform.Rotator()).GetScaledAxis(EAxis::Y);
+		//world->SpawnActor<ABuilding>(transform.GetLocation() - vecRight * 1384 / 1.6f, transform.GetRotation().Rotator());
+
+		//auto newBuilding = world->SpawnActor<ABuilding>(transform.GetLocation() + vecRight * 1384 / 1.6f, transform.GetRotation().Rotator());
+		//auto newRotation = UKismetMathLibrary::ComposeRotators(newBuilding->GetActorRotation(), UKismetMathLibrary::RotatorFromAxisAndAngle(newBuilding->GetActorUpVector(), 180));
+		//newBuilding->SetActorRotation(newRotation);
 	}
 }
 
@@ -83,7 +184,7 @@ void ATrackGenerator::OnConstruction(const FTransform& Transform) {
 void ATrackGenerator::CreateSplinePoint()
 {
 	float angleHVar = 5.f;
-	float angleVVar = 5.f;
+	float angleVVar = 1.f;
 	//UE_LOG(LogTemp, Warning, TEXT("angleH %f %d"), angleH, angleHDest);
 
 	if (angleH < angleHDest) {
@@ -112,12 +213,12 @@ void ATrackGenerator::CreateSplinePoint()
 
 void ATrackGenerator::AddSplinePoint()
 {
-	angleH = 0;
-	angleV = 0;
+	//angleH = 0;
+	//angleV = 0;
 
-	float newX = FMath::Cos(FMath::DegreesToRadians(angleH)) * 600.f;
-	float newY = FMath::Sin(FMath::DegreesToRadians(angleH)) * 600.f;
-	float newZ = FMath::Sin(FMath::DegreesToRadians(angleV)) * 600.f;
+	float newX = FMath::Cos(FMath::DegreesToRadians(angleH)) * 600;
+	float newY = FMath::Sin(FMath::DegreesToRadians(angleH)) * 600;
+	float newZ = FMath::Sin(FMath::DegreesToRadians(angleV)) * 600;
 	lastPoint += FVector(newX, newY, newZ);
 	Spline->AddSplinePoint(lastPoint, ESplineCoordinateSpace::World);
 }
@@ -142,7 +243,7 @@ void ATrackGenerator::GetHorizontalAngle()
 void ATrackGenerator::GetVerticalAngle()
 {
 	int randomDirection;
-	angleVDest = GetNewRandomAngle();
+	angleVDest = GetNewRandomAngle() / 5.f;
 
 	if (lastPoint.Z < 0 && angleVDest < 0) {
 		angleVDest = -angleVDest;

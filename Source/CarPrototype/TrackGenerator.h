@@ -10,8 +10,8 @@ UCLASS()
 class CARPROTOTYPE_API ATrackGenerator : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	ATrackGenerator();
 
@@ -23,7 +23,7 @@ protected:
 
 	void AddSplinePoint();
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -32,13 +32,20 @@ private:
 	class USplineComponent* Spline;
 
 	UPROPERTY(EditAnywhere, Category = Track, meta = (AllowPrivateAccess = "true"))
-	class UStaticMesh* Mesh;
+		class UStaticMesh* RoadMesh;
+
+	UPROPERTY(EditAnywhere, Category = Track, meta = (AllowPrivateAccess = "true"))
+		class UStaticMesh* LeftRoadMesh;
+
+	UPROPERTY(EditAnywhere, Category = Track, meta = (AllowPrivateAccess = "true"))
+		class UStaticMesh* RightRoadMesh;
 
 	FVector lastPoint;
 	float angleH;
 	float angleV;
 	int angleHDest;
 	int angleVDest;
+	UStaticMesh* buildingMesh;
 
 	void GetHorizontalAngle();
 	void GetVerticalAngle();

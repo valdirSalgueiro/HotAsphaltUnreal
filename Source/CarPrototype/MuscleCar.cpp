@@ -333,13 +333,13 @@ void AMuscleCar::CalculateAxleForces(FAxle* Axle, int totalWheelsCount, int numb
 	if (Axle->wheelDataL.isOnGround)
 	{
 		//::DrawDebugLine(GetWorld(), Axle->wheelDataL.touchPoint.Location, Axle->wheelDataL.touchPoint.Location + wsDownDirection * antiRollForce * 100, FColor::Blue, false, 0.0f, 0, 3.f);
-		Body->AddForceAtLocation(wsDownDirection * antiRollForce * 100, Axle->wheelDataL.touchPoint.Location);
+		Body->AddForceAtLocation(wsDownDirection * antiRollForce * 200, Axle->wheelDataL.touchPoint.Location);
 	}
 
 	if (Axle->wheelDataR.isOnGround)
 	{
 		//::DrawDebugLine(GetWorld(), Axle->wheelDataR.touchPoint.Location, Axle->wheelDataR.touchPoint.Location + wsDownDirection * -antiRollForce * 100, FColor::Blue, false, 0.0f, 0, 3.f);
-		Body->AddForceAtLocation(wsDownDirection * -antiRollForce * 100, Axle->wheelDataR.touchPoint.Location);
+		Body->AddForceAtLocation(wsDownDirection * -antiRollForce * 200, Axle->wheelDataR.touchPoint.Location);
 	}
 }
 
@@ -520,7 +520,7 @@ void AMuscleCar::CalculateWheelForces(FAxle* axle, FVector wsDownDirection, FWhe
 	{
 		FVector accForcePoint = wheelData->touchPoint.Location - (wsDownDirection * 0.2f);
 		FVector engineForce = c_fwd * accelerationForceMagnitude / (float)numberOfPoweredWheels / dt;
-		::DrawDebugLine(GetWorld(), accForcePoint, accForcePoint + engineForce * 100, FColor::Blue, false, 0.0f, 0, 3.f);
+		//::DrawDebugLine(GetWorld(), accForcePoint, accForcePoint + engineForce * 100, FColor::Blue, false, 0.0f, 0, 3.f);
 		Body->AddForceAtLocation(engineForce * 100, accForcePoint);
 		//UE_LOG(LogTemp, Warning, TEXT("engineforce %s"), *engineForce.ToCompactString());
 	}
