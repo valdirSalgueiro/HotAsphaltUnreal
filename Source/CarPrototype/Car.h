@@ -33,6 +33,10 @@ struct FWheelStruct
 		float radius;
 	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
 		float mass;
+	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
+		float corneringStiffness;
+	UPROPERTY(EditAnywhere, Category = "Player", meta = (AllowPrivateAccess = "true"))
+		float longStiffness;
 };
 
 UCLASS()
@@ -107,6 +111,9 @@ protected:
 	/*Toque Curve*/
 	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 		UCurveFloat* EngineCurve;
+
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+		UCurveFloat* ForceCurve;
 
 	/*Input methods*/
 	void MoveRight(float AxisValue);

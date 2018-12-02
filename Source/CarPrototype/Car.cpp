@@ -73,7 +73,8 @@ ACar::ACar()
 
 	steeringAngle = 0;
 
-	for (int i = 0; i < ToplinkComponents.Num(); i++) {
+	for (int i = 0; i < ToplinkComponents.Num(); i++)
+	{
 		FSuspensionStruct suspension;
 		suspension.restLength = 50;
 		suspension.travel = 10;
@@ -86,6 +87,11 @@ ACar::ACar()
 		FWheelStruct wheel;
 		wheel.radius = 34;
 		wheel.mass = 15;
+		if (i == 0 || i == 1)
+			wheel.corneringStiffness = 0.7;
+		else
+			wheel.corneringStiffness = 0.5;
+		wheel.longStiffness = 1.0;
 		Wheels.Add(wheel);
 
 		auto length = suspension.restLength + suspension.travel;
@@ -183,8 +189,19 @@ void ACar::Tick(float DeltaTime)
 
 	engineRPM = engineAngularVelocity * RADPS_TO_RPM;
 
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(99, 15.0f, FColor::Blue, FString::Printf(TEXT("engineRPM %f"), engineRPM));
+		GEngine->AddOnScreenDebugMessage(100, 15.0f, FColor::Blue, FString::Printf(TEXT("engineTorque %f"), engineTorque));
+		GEngine->AddOnScreenDebugMessage(101, 15.0f, FColor::Blue, FString::Printf(TEXT("torque %f"), torque));
+		GEngine->AddOnScreenDebugMessage(102, 15.0f, FColor::Green, FString::Printf(TEXT("gear %d"), gear));
+	}
 	for (int32 i = 0; i < ToplinkComponents.Num(); i++)
 	{
+		//FL = 0
+		//FR = 1
+		//RL = 2
+		//RR = 3
+
 		auto ToplinkComponent = ToplinkComponents[i];
 		auto upVector = ToplinkComponent->GetUpVector();
 		auto ToplinkComponentTransform = ToplinkComponent->GetComponentTransform();
@@ -204,7 +221,7 @@ void ACar::Tick(float DeltaTime)
 			Length[i] = suspension.restLength + suspension.travel;
 		}
 
-		/* transmission */
+		/* transmission*/
 		engineTorque = FMath::Max(0.f, engineTorque);
 		totalGearRatio = mainGear * gear;
 		auto currentTorqueRation = 0;
@@ -229,7 +246,6 @@ void ACar::Tick(float DeltaTime)
 		wheelAngularVelocity[i] = wheelAngularVelocity[i] + angularAcceleration * DeltaTime;
 		wheelAngularVelocity[i] = FMath::Min(FMath::Abs(wheelAngularVelocity[i]), FMath::Abs(maxWheelSpeed)) * FMath::Sign(maxWheelSpeed);
 
-
 		///springforce = stiffness * (restlength - length)
 		auto springForce = suspension.stiffness * (suspension.restLength - Length[i]);
 
@@ -239,20 +255,62 @@ void ACar::Tick(float DeltaTime)
 
 
 		auto fz = FMath::Clamp(damperForce + springForce, suspension.forceMin, suspension.forceMax);
-		float fx = 0;
-		float fy = 0;
+		float fx;
+		float fy;
 		FVector point = wheelComponent->GetComponentLocation() - wheel.radius * upVector;
 		auto velocity = Body->GetPhysicsLinearVelocityAtPoint(point);
 		auto wheelLinearVelocityLocal = UKismetMathLibrary::InverseTransformDirection(ToplinkComponentTransform, velocity / 100.0f);
-		if (wheelContact) {
+		//getlongslipVelocity funtion
+		auto longSlipVelocity = wheelAngularVelocity[i] * wheel.radius / 100.f - wheelLinearVelocityLocal.X;
 
-			fy = FMath::Clamp(fz * -wheelLinearVelocityLocal.Y, -fz, fz);
-			fx = MovementInput.X * fz * 0.5f;
+		//gettireforcecombined function
+		if (wheelContact)
+		{
+			//fy = FMath::Clamp(fz * -wheelLinearVelocityLocal.Y, -fz, fz);
+			//fx = MovementInput.X * fz * 0.5f;
+			float lateralSlipNormalized = FMath::Clamp(wheelLinearVelocityLocal.Y * -wheel.corneringStiffness, -1.f, 1.f);
+			float longSlipNormalized;
 
-			//if (GEngine) {
-			//	GEngine->AddOnScreenDebugMessage(i, 15.0f, FColor::Yellow, FString::Printf(TEXT("%d %s"), i, *wheelLinearVelocityLocal.ToCompactString()));
-			//	GEngine->AddOnScreenDebugMessage(i + 4, 15.0f, FColor::Yellow, FString::Printf(TEXT("fz: %d %s"), i, *(fz * 100 * upVector).ToCompactString()));
-			//}
+			///if(Carspeed*slipspeed > 0)traction else friction
+			if (longSlipVelocity * wheelLinearVelocityLocal.X > 0)
+			{
+				///wheelRadiusMeter
+				float R = wheel.radius / 100.f;
+
+				///traction = drivetorque/r
+				float traction = DriveTorque[i] / R;
+
+				///longSlipNormalized = Traction/MaxFriction
+				longSlipNormalized = FMath::Clamp(traction / FMath::Max(fz, 0.000001f), -2.f, 2.f);
+			}
+			else
+			{
+				longSlipNormalized = FMath::Clamp(longSlipVelocity * wheel.longStiffness, -2.f, 2.f);
+			}
+
+			auto combinedVector = FVector2D(longSlipNormalized, lateralSlipNormalized);
+			float combinedSlip = combinedVector.Size();
+			///tireforce normalized
+			combinedVector.Normalize();
+			auto tireForceNormalized = ForceCurve->GetFloatValue(combinedSlip) * combinedVector;
+			auto tireForce = FMath::Max(fz, 0.f) * tireForceNormalized;
+
+			fx = tireForce.X;
+			fy = tireForce.Y;
+
+			if (GEngine) {
+				GEngine->AddOnScreenDebugMessage(i, 15.0f, FColor::Yellow, FString::Printf(TEXT("fx %d %f"), i, fx));
+				GEngine->AddOnScreenDebugMessage(i + 1, 15.0f, FColor::Yellow, FString::Printf(TEXT("fy %d %f"), i, fy));
+				GEngine->AddOnScreenDebugMessage(i + 2, 15.0f, FColor::Yellow, FString::Printf(TEXT("wheelLinearVelocityLocal %d %s"), i, *wheelLinearVelocityLocal.ToCompactString()));
+				GEngine->AddOnScreenDebugMessage(i + 3, 15.0f, FColor::Yellow, FString::Printf(TEXT("longSlipNormalized %d %f"), i, longSlipNormalized));
+				GEngine->AddOnScreenDebugMessage(i + 4, 15.0f, FColor::Yellow, FString::Printf(TEXT("lateralSlipNormalized %d %f"), i, lateralSlipNormalized));
+				GEngine->AddOnScreenDebugMessage(i + 5, 15.0f, FColor::Yellow, FString::Printf(TEXT("DriveTorque[i] %d %f"), i, DriveTorque[i]));
+			}
+		}
+		else
+		{
+			fx = 0;
+			fy = 0;
 		}
 
 		auto forwadVector = ToplinkComponent->GetForwardVector();
@@ -268,10 +326,9 @@ void ACar::Tick(float DeltaTime)
 
 		if (debugForces)
 		{
-			//::DrawDebugLine(World, toplinkLocation, toplinkLocation + fx / 35.f * forwadVector, FColor::Green, false, 0.0f, 0, 9.f);
-			//::DrawDebugLine(World, toplinkLocation, toplinkLocation + fy / 35.f * rightVector, FColor::Blue, false, 0.0f, 0, 9.f);
-			//::DrawDebugLine(World, toplinkLocation, toplinkLocation + fz / 35.f * upVector, FColor::Purple, false, 0.0f, 0, 9.f);
-			//	::DrawDebugPoint(World, HitResult.ImpactPoint, 16.0f, FColor::Red, false, 0.0f);
+			::DrawDebugLine(World, toplinkLocation, toplinkLocation + fx / 35.f * forwadVector, FColor::Green, false, 0.0f, 0, 9.f);
+			::DrawDebugLine(World, toplinkLocation, toplinkLocation + fy / 35.f * rightVector, FColor::Blue, false, 0.0f, 0, 9.f);
+			::DrawDebugLine(World, toplinkLocation, toplinkLocation + fz / 35.f * upVector, FColor::Purple, false, 0.0f, 0, 9.f);
 		}
 		LastLength[i] = Length[i];
 	}
